@@ -26,51 +26,63 @@ async function CategoryData({ params, searchParams }: PageProps) {
   const resolvedParams = await params;
   const resolvedSearchParams = await searchParams;
 
-  const slug = resolvedParams.slug.toLowerCase();
+  // URL এর slug কে ডিকোড করে বাংলায় নেওয়া হচ্ছে
+  const rawSlug = resolvedParams.slug;
+  const slug = decodeURIComponent(rawSlug).toLowerCase();
   const sort = resolvedSearchParams.sort;
 
   const response = await fetchProducts();
   const allProducts = Array.isArray(response) ? response : response?.data || [];
 
-  // সুপার স্মার্ট এবং স্পেসিফিক ফিল্টারিং (বাংলা সাবস্ট্রিং বাগ ফিক্সড)
   const categoryProducts = allProducts.filter((p: Product) => {
     const pCat = (p.category || "").toLowerCase();
     const pName = (p.nameBn || p.name || "").toLowerCase();
 
-    // ১. API-এর ক্যাটাগরি যদি একদম হুবহু মিলে যায়
     if (pCat === slug) return true;
 
-    // ২. নামের উপর ভিত্তি করে নিখুঁত লজিক
-    if (slug === "rice") return pName.includes("চাল");
-    if (slug === "dal") return pName.includes("ডাল") || pName.includes("ছোলা");
-
-    // তেলের ক্ষেত্রে তেলাপিয়া বাদ!
-    if (slug === "oil")
-      return pName.includes("তেল") && !pName.includes("তেলাপিয়া");
-
-    if (slug === "vegetables")
+    if (slug.includes("চাল") || slug === "rice" || slug === "chal") {
+      return pName.includes("চাল");
+    }
+    if (slug.includes("ডাল") || slug === "dal") {
+      return pName.includes("ডাল") || pName.includes("ছোলা");
+    }
+    if (slug.includes("তেল") || slug === "oil" || slug === "tel") {
+      return pName.includes("তেল") && !pName.includes("তেলাপিয়া");
+    }
+    
+    // নিখুঁত সবজি ফিল্টারিং (মসলা বা গুঁড়া পণ্য বাদ দেওয়া হয়েছে)
+    if (slug.includes("সবজি") || slug === "vegetables" || slug === "sobji") {
       return (
-        pName.includes("সবজি") ||
-        pName.includes("আলু") ||
-        pName.includes("পেঁয়াজ") ||
-        pName.includes("বেগুন") ||
-        pName.includes("ঢেঁড়স") ||
-        pName.includes("কাঁচামরিচ") ||
-        pName.includes("আদা")
+        (pName.includes("সবজি") ||
+         pName.includes("আলু") ||
+         pName.includes("পেঁয়াজ") ||
+         pName.includes("বেগুন") ||
+         pName.includes("ঢেঁড়স") ||
+         pName.includes("টমেটো") ||
+         pName.includes("উচ্ছে") ||
+         pName.includes("করলা") ||
+         pName.includes("পটল") ||
+         pName.includes("লাউ") ||
+         pName.includes("মিষ্টি কুমড়া")) &&
+        !pName.includes("গুঁড়া") &&
+        !pName.includes("গুড়া") &&
+        !pName.includes("মসলা") &&
+        !pName.includes("হলুদ") &&
+        !pName.includes("মরিচ গুঁড়া")
       );
+    }
 
-    // মাছের ক্ষেত্রে স্বর্ণমাছি (মাছি) বাদ!
-    if (slug === "fish")
+    if (slug.includes("মাছ") || slug === "fish" || slug === "mach") {
       return (
         (pName.includes("মাছ") && !pName.includes("মাছি")) ||
-        pName.includes("তেলাপিয়া") ||
+        pName.includes("তেলাপিয়া") ||
         pName.includes("রুই") ||
         pName.includes("ইলিশ") ||
         pName.includes("কাতলা") ||
-        pName.includes("চিংড়ি")
+        pName.includes("চিংড়ি")
       );
-
-    if (slug === "meat")
+    }
+    if (slug.includes("মাংস") || slug === "meat" || slug === "mangsho") {
       return (
         pName.includes("মাংস") ||
         pName.includes("মুরগি") ||
@@ -78,20 +90,25 @@ async function CategoryData({ params, searchParams }: PageProps) {
         pName.includes("খাসি") ||
         pName.includes("হাঁস")
       );
-
-    if (slug === "egg-milk")
+    }
+    if (slug.includes("ডিম") || slug.includes("দুধ") || slug === "egg-milk") {
       return (
         pName.includes("ডিম") || pName.includes("দুধ") || pName.includes("মাখন")
       );
-
-    if (slug === "spice")
+    }
+    
+    // নিখুঁত মসলা ফিল্টারিং
+    if (slug.includes("মসলা") || slug === "spice" || slug === "moshla") {
       return (
         pName.includes("মসলা") ||
-        pName.includes("মরিচ") ||
         pName.includes("রসুন") ||
         pName.includes("হলুদ") ||
-        pName.includes("জিরা")
+        pName.includes("জিরা") ||
+        pName.includes("গুঁড়া") ||
+        pName.includes("গুঁড়া") ||
+        pName.includes("মরিচ")
       );
+    }
 
     return false;
   });
@@ -109,17 +126,8 @@ async function CategoryData({ params, searchParams }: PageProps) {
     );
   }
 
-  const categoryNames: Record<string, string> = {
-    rice: "চাল",
-    dal: "ডাল",
-    oil: "তেল",
-    vegetables: "সবজি",
-    fish: "মাছ",
-    meat: "মাংস",
-    "egg-milk": "ডিম-দুধ",
-    spice: "মসলা",
-  };
-  const title = categoryNames[slug] || "পণ্য";
+  // সঠিক বাংলা টাইটেল দেখানোর জন্য
+  const title = decodeURIComponent(rawSlug);
 
   return (
     <>
@@ -142,19 +150,19 @@ async function CategoryData({ params, searchParams }: PageProps) {
         <div className="flex items-center gap-2 flex-wrap">
           <span className="text-gray-500 text-sm">সাজান:</span>
           <Link
-            href={`/category/${slug}`}
+            href={`/category/${rawSlug}`}
             className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${!sort ? "bg-[#0f9d58] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
           >
             ডিফল্ট
           </Link>
           <Link
-            href={`/category/${slug}?sort=asc`}
+            href={`/category/${rawSlug}?sort=asc`}
             className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${sort === "asc" ? "bg-[#0f9d58] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
           >
             দাম: কম থেকে বেশি
           </Link>
           <Link
-            href={`/category/${slug}?sort=desc`}
+            href={`/category/${rawSlug}?sort=desc`}
             className={`px-3 py-1.5 text-xs rounded-lg font-medium transition ${sort === "desc" ? "bg-[#0f9d58] text-white" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
           >
             দাম: বেশি থেকে কম
@@ -171,7 +179,7 @@ async function CategoryData({ params, searchParams }: PageProps) {
       ) : (
         <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
           <p className="text-gray-500 text-lg">
-            এই ক্যাটাগরিতে বর্তমানে কোনো পণ্য পাওয়া যায়নি।
+            এই ক্যাটাগরিতে বর্তমানে কোনো পণ্য পাওয়া যায়নি।
           </p>
         </div>
       )}
@@ -192,7 +200,7 @@ export default function CategoryPage({ params, searchParams }: PageProps) {
       </div>
       <Suspense
         fallback={
-          <div className="text-center py-20 text-gray-500">
+          <div className="text-center py-20 text-gray-500 animate-pulse">
             ক্যাটাগরি ডেটা লোড হচ্ছে...
           </div>
         }
