@@ -11,6 +11,7 @@ interface Product {
   id?: string | number;
   name: string;
   price: number | string;
+  today?: number | string;
   unit?: string;
   image?: string;
   change?: { dir: string; pct: number } | string;
@@ -22,14 +23,26 @@ async function ProductList() {
   const response = await fetchProducts();
   const products = Array.isArray(response) ? response : response?.data || [];
 
-  // ফিগমা ডিজাইন অনুযায়ী ৩টি করে পণ্য দেখানো হচ্ছে
-  const priceUpProducts = products.slice(0, 3);
-  const priceDownProducts = products.slice(3, 6);
+  // রিকোয়ারমেন্ট অনুযায়ী: টপ ৬টি দাম বাড়া এবং টপ ৬টি দাম কমা পণ্য ফিল্টার করা
+  const priceUpProducts = products.filter((p: Product) => {
+    if (typeof p.change === "object" && p.change !== null) {
+      return p.change.dir === "up" || p.change.pct > 0;
+    }
+    return p.status === "up";
+  }).slice(0, 6);
+
+  const priceDownProducts = products.filter((p: Product) => {
+    if (typeof p.change === "object" && p.change !== null) {
+      return p.change.dir === "down" || p.change.pct < 0;
+    }
+    return p.status === "down";
+  }).slice(0, 6);
+
   const allProducts = products;
 
   return (
     <>
-      {/* আজ দাম বেড়েছে section */}
+      {/* ১. আজ দাম বেড়েছে section (Top 6 Risers) */}
       {priceUpProducts.length > 0 && (
         <section className="mb-10">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-6">
@@ -49,7 +62,7 @@ async function ProductList() {
         </section>
       )}
 
-      {/* আজ দাম কমেছে section */}
+      {/* ২. আজ দাম কমেছে section (Top 6 Fallers) */}
       {priceDownProducts.length > 0 && (
         <section className="mb-12">
           <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2 mb-6">
@@ -69,9 +82,10 @@ async function ProductList() {
         </section>
       )}
 
-      {/* সব পণ্য section */}
+      {/* ৩. সব পণ্য section (All Products Grid) */}
       <section id="all-products">
-        <h2 className="text-xl font-bold text-gray-800 mb-6">সব পণ্য</h2>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">সব পণ্য</h2>
+        <p className="text-gray-500 text-sm mb-6">বাজারের সকল প্রয়োজনীয় পণ্যের আজকের তালিকা ও দাম</p>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {allProducts.length > 0 ? (
             allProducts.map((product: Product, idx: number) => (
@@ -110,19 +124,19 @@ export default async function Home() {
 
   return (
     <main>
-      {/* ১. Category Navigation Bar (একদম আগের মতো বাংলায় ফিরিয়ে আনা হয়েছে) */}
+      {/* Category Navigation Bar */}
       <div className="bg-white border-b border-gray-100 overflow-x-auto">
         <div className="container mx-auto px-4 md:px-8">
-         <div className="flex items-center gap-6 md:gap-8 py-3 text-sm font-medium text-gray-700 min-w-max">
-  <Link href="/category/চাল" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🍚</span> চাল</Link>
-  <Link href="/category/ডাল" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🧆</span> ডাল</Link>
-  <Link href="/category/তেল" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🛢️</span> তেল</Link>
-  <Link href="/category/সবজি" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🥬</span> সবজি</Link>
-  <Link href="/category/মাছ" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🐟</span> মাছ</Link>
-  <Link href="/category/মাংস" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🍗</span> মাংস</Link>
-  <Link href="/category/ডিম-দুধ" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🥛</span> ডিম-দুধ</Link>
-  <Link href="/category/মসলা" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🌶️</span> মসলা</Link>
-</div>
+          <div className="flex items-center gap-6 md:gap-8 py-3 text-sm font-medium text-gray-700 min-w-max">
+            <Link href="/category/চাল" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🍚</span> চাল</Link>
+            <Link href="/category/ডাল" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🧆</span> ডাল</Link>
+            <Link href="/category/তেল" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🛢️</span> তেল</Link>
+            <Link href="/category/সবজি" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🥬</span> সবজি</Link>
+            <Link href="/category/মাছ" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🐟</span> মাছ</Link>
+            <Link href="/category/মাংস" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🍗</span> মাংস</Link>
+            <Link href="/category/ডিম-দুধ" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🥛</span> ডিম-দুধ</Link>
+            <Link href="/category/মসলা" className="flex items-center gap-2 hover:text-[#0f9d58] transition"><span>🌶️</span> মসলা</Link>
+          </div>
         </div>
       </div>
 
