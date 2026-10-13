@@ -3,20 +3,51 @@
 import Link from "next/link";
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { authClient } from "@/lib/auth-client";
+import { useRouter } from "next/navigation";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const router = useRouter();
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Ekhane BetterAuth er signIn logic boshbe
-    setTimeout(() => {
-      toast.success("সাইন ইন সফল হয়েছে!");
-      setLoading(false);
-    }, 1000);
+
+    await authClient.signIn.email(
+      {
+        email,
+        password,
+      },
+      {
+        onSuccess: () => {
+          toast.success("সাইন ইন সফল হয়েছে!");
+          router.push("/");
+          router.refresh();
+          setLoading(false);
+        },
+        onError: (ctx) => {
+          toast.error(ctx.error.message || "সাইন ইন ব্যর্থ হয়েছে!");
+          setLoading(false);
+        },
+      }
+    );
+  };
+
+  const handleSocialSignIn = async (provider: "google" | "github") => {
+    await authClient.signIn.social(
+      {
+        provider,
+        callbackURL: "/",
+      },
+      {
+        onError: (ctx) => {
+          toast.error(ctx.error.message || `${provider} দিয়ে লগইন ব্যর্থ হয়েছে!`);
+        },
+      }
+    );
   };
 
   return (
@@ -46,7 +77,7 @@ export default function SignIn() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1.5">
-              পাসওয়ার্ড
+              পাসওয়ার্ড
             </label>
             <input
               type="password"
@@ -81,13 +112,19 @@ export default function SignIn() {
         </div>
 
         <div className="flex flex-col sm:flex-row gap-3">
-          <button className="flex-1 flex items-center justify-center gap-2 border border-gray-300 py-2.5 rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-700">
-            <span className="text-red-500 text-lg">G</span> Google দিয়ে চালিয়ে
-            যান
+          <button
+            type="button"
+            onClick={() => handleSocialSignIn("google")}
+            className="flex-1 flex items-center justify-center gap-2 border border-gray-300 py-2.5 rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-700"
+          >
+            <span className="text-red-500 text-lg">G</span> Google দিয়ে চালিয়ে যান
           </button>
-          <button className="flex-1 flex items-center justify-center gap-2 border border-gray-300 py-2.5 rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-700">
-            <span className="text-black text-lg">GH</span> GitHub দিয়ে চালিয়ে
-            যান
+          <button
+            type="button"
+            onClick={() => handleSocialSignIn("github")}
+            className="flex-1 flex items-center justify-center gap-2 border border-gray-300 py-2.5 rounded-lg hover:bg-gray-50 transition text-sm font-medium text-gray-700"
+          >
+            <span className="text-black text-lg">GH</span> GitHub দিয়ে চালিয়ে যান
           </button>
         </div>
 

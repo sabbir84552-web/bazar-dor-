@@ -1,7 +1,8 @@
 import { betterAuth } from "better-auth";
+// Apnar database adapter import kore ekhane add korte hobe
 
-// Basic BetterAuth configuration
 export const auth = betterAuth({
+  // database: ...,
   emailAndPassword: {
     enabled: true,
   },
