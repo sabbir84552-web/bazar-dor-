@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
-// Apnar database adapter import kore ekhane add korte hobe
 
 export const auth = betterAuth({
-  // database: ...,
+  baseURL: process.env.BETTER_AUTH_URL || "https://bazardor-eight-gray.vercel.app",
+  secret: process.env.BETTER_AUTH_SECRET,
   emailAndPassword: {
     enabled: true,
   },
