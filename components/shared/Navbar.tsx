@@ -1,17 +1,40 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { authClient } from "@/lib/auth-client";
 
 export default function Navbar() {
   const router = useRouter();
   const [currentDate, setCurrentDate] = useState("");
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null,
-  );
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Better Auth session hook
+  const { data: session, isPending } = authClient.useSession();
+  const user = session?.user;
+
+  // বাইরে ক্লিক করলে ড্রপডাউন বন্ধ করার লজিক
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   // Dynamic Date Logic
   useEffect(() => {
@@ -72,45 +95,11 @@ export default function Navbar() {
     return () => clearTimeout(timer);
   }, []);
 
-  // User Local Storage Logic
-  const loadUser = useCallback(() => {
-    const storedUser = localStorage.getItem("bazardor_user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    } else {
-      setUser(null);
-    }
-    setIsHydrated(true);
-  }, []);
-
-  useEffect(() => {
-    // ESLint error fix korar jonno setTimeout use kora holo
-    const timer = setTimeout(() => {
-      loadUser();
-    }, 0);
-
-    const handleStorageChange = () => loadUser();
-    window.addEventListener("storage", handleStorageChange);
-
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener("storage", handleStorageChange);
-    };
-  }, [loadUser]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("bazardor_user");
-    setUser(null);
+  const handleLogout = async () => {
+    await authClient.signOut();
     setIsDropdownOpen(false);
-    window.dispatchEvent(new Event("storage"));
     router.push("/");
   };
-
-  if (!isHydrated) {
-    return (
-      <header className="bg-white border-b border-gray-100 sticky top-0 z-40 shadow-sm h-20"></header>
-    );
-  }
 
   const initial = user?.name ? user.name.charAt(0).toUpperCase() : "U";
   const shortName = user?.name ? user.name.split(" ")[0] : "User";
@@ -135,14 +124,28 @@ export default function Navbar() {
         </div>
 
         <div>
-          {user ? (
-            <div className="relative">
+          {isPending ? (
+            <div className="w-20 h-8 bg-gray-100 animate-pulse rounded-lg"></div>
+          ) : user ? (
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setIsDropdownOpen(!isDropdownOpen)}
                 className="flex items-center gap-2 hover:bg-gray-50 px-2 py-1.5 rounded-lg transition border-none bg-transparent cursor-pointer"
               >
-                <div className="w-8 h-8 rounded-full bg-green-100 text-green-700 font-bold flex items-center justify-center">
-                  {initial}
+                <div className="w-9 h-9 rounded-full overflow-hidden bg-green-100 border border-gray-200 flex items-center justify-center shrink-0 relative">
+                  {user.image ? (
+                    <Image
+                      src={user.image}
+                      alt={user.name || "User"}
+                      fill
+                      sizes="36px"
+                      className="object-cover"
+                    />
+                  ) : (
+                    <span className="text-green-700 font-bold text-sm">
+                      {initial}
+                    </span>
+                  )}
                 </div>
                 <span className="text-sm font-medium text-gray-700 hidden sm:block">
                   {shortName} ▾
@@ -152,10 +155,12 @@ export default function Navbar() {
               {isDropdownOpen && (
                 <div className="absolute right-0 mt-3 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-2 z-50">
                   <div className="px-5 py-3 border-b border-gray-50 bg-gray-50/50 mx-2 rounded-xl mb-2">
-                    <p className="text-sm font-bold text-gray-900">
+                    <p className="text-sm font-bold text-gray-900 truncate">
                       {user.name}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{user.email}</p>
+                    <p className="text-xs text-gray-500 mt-0.5 truncate">
+                      {user.email}
+                    </p>
                   </div>
 
                   <div className="flex flex-col gap-1 px-2">
